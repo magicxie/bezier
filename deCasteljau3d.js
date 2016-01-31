@@ -8,7 +8,7 @@ function deCasteljauBezier(points, step) {
 
     var bezier = [];
     var controlPoints = points.map(function (p) {
-        return {x: p.x, y: p.y};
+        return {x: p.x, y: p.y, z: p.z};
     });
 
     var totalPointCount = controlPoints.length;
@@ -29,6 +29,8 @@ function deCasteljauBezier(points, step) {
             Math.abs(controlPoints[0].x - points[totalPointCount - 1].x) < 0.0001
             &&
             Math.abs(controlPoints[0].y - points[totalPointCount - 1].y) < 0.0001
+            &&
+            Math.abs(controlPoints[0].z - points[totalPointCount - 1].z) < 0.0001
         ){
             bezier.push(points[totalPointCount - 1]);
             break;
@@ -46,7 +48,8 @@ function reposition(points, currentControlPointIndex, time) {
     var nextControlPointIndex = currentControlPointIndex + 1;
     return {
         x: adjustPoint(points[currentControlPointIndex].x, points[nextControlPointIndex].x, time),
-        y: adjustPoint(points[currentControlPointIndex].y, points[nextControlPointIndex].y, time)
+        y: adjustPoint(points[currentControlPointIndex].y, points[nextControlPointIndex].y, time),
+        z: adjustPoint(points[currentControlPointIndex].z, points[nextControlPointIndex].z, time)
     }
 }
 
