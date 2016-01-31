@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <style>
+        [draggable] {
+            -moz-user-select: none;
+            -khtml-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            /* Required to make elements draggable in old WebKit */
+            -khtml-user-drag: element;
+            -webkit-user-drag: element;
+        }
+
+        .contorlPanel {
+            width: 300px;
+            height: 300px;
+            position: absolute;
+            z-index: 500;
+
+        }
+
+        #canvas {
+            border: 2px solid #BB52CA;
+
+        }
+
+        .controlPoint {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #BB52CA;
+            position: absolute;
+            z-index: 600;
+            cursor: pointer;
+            margin-top: -10px;
+            margin-left: -10px;
+        }
+
+        body {
+            margin: auto;
+            padding: 1em;
+        }
+
+        #playground {
+            width: 600px;
+            background: #dddddd;
+            margin: 10px 0;
+            padding-right: 40px;;
+        }
+
+        #t1 {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgb(187, 82, 202);
+            transition-timing-function: cubic-bezier(0.64, 0.87, 0.85, 0.63);
+            position: relative;
+            transition: 2s;
+            left: 0%;
+            cursor: pointer;
+        }
+
+        #t1.forward {
+            left: 100%;
+        }
+
+        #t1.backward {
+            left: 0%;
+        }
+    </style>
+    <script>
+
+        function BezierEditor(context, c1, c2) {
+            this.limit = 300;
+            this.c1 = c1;
+            this.c2 = c2;
+            this.context = context;
+            this.startPoint = {x: 0, y: this.limit};
+            this.endPoint = {x: this.limit, y: 0};
+        }
+
+        BezierEditor.prototype = {
+            getControlPoint: function () {
+                return [startPoint, this.c1, this.c2, endPoint];
+            },
+            setControlPoints: function (c1, c2) {
+                this.c1 = c1 || this.c1;
+                this.c2 = c2 || this.c2;
+            },
+            drawControlPoints: function () {
+
+                var c1dom = document.querySelector('#c1');
+                var c2dom = document.querySelector('#c2');
+                c1dom.style.left = this.c1.x + 'px';
+                c1dom.style.top = this.c1.y + 'px';
+
+                c2dom.style.left = this.c2.x + 'px';
+                c2dom.style.top = this.c2.y + 'px';
+
+                this.context.lineWidth = 2;
+                this.context.strokeStyle = "#BB52CA";
+                this.context.beginPath();
+                this.context.moveTo(this.startPoint.x, this.startPoint.y);
+                this.context.lineTo(this.c1.x, this.c1.y);
+                this.context.stroke();
+                this.context.closePath();
+
+                this.context.beginPath();
+                this.context.moveTo(this.c2.x, this.c2.y);
+                this.context.lineTo(this.endPoint.x, this.endPoint.y);
+                this.context.stroke();
+                this.context.closePath();
+            },
+
+            drawBezier: function () {
+
+                this.context.strokeStyle = "black";
+                this.context.lineWidth = 2;
+                this.context.beginPath();
+
+                this.context.moveTo(this.startPoint.x, this.startPoint.y);
+                this.context.bezierCurveTo(this.c1.x, this.c1.y, this.c2.x, this.c2.y, this.endPoint.x, this.endPoint.y);
+                this.context.stroke();
+
+                this.context.closePath();
+
+                this.onBezierChange.call(this);
+
+            },
+            clear: function () {
+                this.context.clearRect(0, 0, this.limit, this.limit);
+            },
+            init: function () {
+
+                this.context.lineWidth = 2;
+                this.context.strokeStyle = "rgba(0,0,0,0.2)";
+                this.context.beginPath();
+                this.context.moveTo(this.startPoint.x, this.startPoint.y);
+                this.context.lineTo(this.endPoint.x, this.endPoint.y);
+                this.context.stroke();
+                this.context.closePath();
+            },
+            onBezierChange: function () {
+
+            }
+
+        }
+    </script>
+</head>
+<body>
+<h1>Bezier Curve on canvas</h1>
+
+<h2 id="bezierCp"></h2>
+
+<div id="playground">
+    <div id="t1"></div>
+</div>
+<div class="contorlPanel" droppable="true">
+    <div id="c1" draggable="true" class="controlPoint"></div>
+    <div id="c2" draggable="true" class="controlPoint"></div>
+</div>
+<canvas width=300 height=300 id="canvas"></canvas>
+<script>
+
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext('2d');
+
+    var controlPoints = [];
+    var size = 2;//Math.round(20 * Math.random()) + 20;
+    for (var i = 0; i < size; i++) {
+        controlPoints.push({x: 300 * Math.random(), y: 300 * Math.random()});
+    }
+
+    var e = new BezierEditor(context, controlPoints[0], controlPoints[1]);
+
+    e.onBezierChange = function () {
+
+        var bezierStr = "cubic-bezier(" + [
+                    this.c1.x / this.limit,
+                    1 - this.c1.y / this.limit,
+                    this.c2.x / this.limit,
+                    1 - this.c2.y / this.limit,
+                ].map(function (e) {
+                            return e.toFixed(2);
+                        }).join(',') + ")";
+
+        document.querySelector('#bezierCp').innerHTML = bezierStr;
+
+        document.querySelector('#t1').style.transitionTimingFunction = bezierStr;
+    };
+
+    e.init();
+    e.drawBezier();
+    e.drawControlPoints();
+
+    document.querySelector('#c1').ondrag = function (event) {
+        event.preventDefault();
+        if (event.x != 0 && event.y != 0 && event.x < e.limit) {
+            e.setControlPoints({x: e.c1.x + event.offsetX, y: e.c1.y + event.offsetY});
+            e.clear();
+            e.init();
+            e.drawBezier();
+            e.drawControlPoints();
+        }
+
+    };
+
+    document.querySelector('#c2').ondrag = function (event) {
+        event.preventDefault();
+        if (event.x != 0 && event.y != 0 && event.x < e.limit) {
+            e.setControlPoints(null, {x: e.c2.x + event.offsetX, y: e.c2.y + event.offsetY});
+            e.clear();
+            e.init();
+            e.drawBezier();
+            e.drawControlPoints();
+        }
+
+    };
+
+    document.querySelector('#t1').onclick = function () {
+
+        if (this.className == 'forward') {
+            this.className = 'backward';
+        } else {
+            this.className = 'forward';
+        }
+    };
+
+
+</script>
+</body>
+</html>
